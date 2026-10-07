@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JUST TO DO</title>
+<style>
+  /* ============ 基础变量 ============ */
+  :root {
+    --focus: #ff7a1a;
+    --short: #3a8fff;
+    --long: #2ecc71;
+    --bg: #0b0b12;
+    --bg-2: #11111c;
+    --card: rgba(255,255,255,0.035);
+    --card-border: rgba(255,255,255,0.08);
+    --text: #f5f5f7;
+    --text-sub: rgba(245,245,247,0.55);
+    --accent: var(--focus);
+    --radius: 18px;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+    --ease: cubic-bezier(.22,.61,.36,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 700px at 50% -10%, #1a1a2e 0%, var(--bg) 55%) fixed;
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+  button, input, select { font-family: inherit; color: inherit; }
+  button { cursor: pointer; border: none; background: none; }
+  input, select { background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+                  border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 15px;
+                  outline: none; transition: border-color .2s var(--ease); width: 100%; }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: #1a1a2e; color: #f5f5f7; }
+  select optgroup { background: #14141f; color: #cfcfe0; }
+
+  /* ============ 布局 ============ */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 18px 60px; }
+  header.hero { padding: 56px 0 36px; text-align: center; }
+  .logo {
+    font-size: clamp(34px, 8vw, 64px);
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #fff 0%, #cfcfe0 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    opacity: 0; transform: translateY(20px);
+    animation: heroIn .9s var(--ease) .15s forwards;
+  }
+  .sub { margin-top: 10px; color: var(--text-sub); font-size: 14px; letter-spacing: 1px;
+         opacity: 0; animation: heroIn .9s var(--ease) .35s forwards; }
+  @keyframes heroIn { to { opacity: 1; transform: translateY(0); } }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  @media (min-width: 880px) {
+    .grid { grid-template-columns: 1.15fr 1fr; }
+    .span-2 { grid-column: 1 / -1; }
+  }
+
+  /* ============ 卡片 ============ */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 22px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+    opacity: 0; transform: translateY(24px);
+    transition: transform .35s var(--ease), box-shadow .35s var(--ease),
+                border-color .35s var(--ease), opacity .6s var(--ease);
+  }
+  .card.in { opacity: 1; transform: translateY(0); }
+  .card:hover { border-color: rgba(255,255,255,0.16); transform: translateY(-4px);
+                box-shadow: 0 18px 50px rgba(0,0,0,0.55); }
+  .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 16px;
+             display: flex; align-items: center; gap: 8px; }
+  .card h2::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--accent); }
+
+  /* ============ 番茄钟 ============ */
+  .timer-card { display: flex; flex-direction: column; align-items: center; }
+  .mode-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
+  .mode-tab {
+    padding: 8px 16px; border-radius: 999px; font-size: 14px; color: var(--text-sub);
+    border: 1px solid var(--card-border); transition: all .25s var(--ease);
+  }
+  .mode-tab.active { color: #fff; background: var(--accent); border-color: transparent; }
+
+  .ring-wrap { position: relative; width: min(280px, 72vw); aspect-ratio: 1; }
+  .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 10; }
+  .ring-fg {
+    fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round;
+    stroke-dasharray: 565.486; stroke-dashoffset: 0;
+    transition: stroke .5s var(--ease), stroke-dashoffset .25s linear;
+    filter: drop-shadow(0 0 10px var(--accent));
+  }
+  .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 6px;
+  }
+  .time-display { font-size: clamp(44px, 11vw, 64px); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .round-info { font-size: 13px; color: var(--text-sub); }
+
+  .controls { display: flex; gap: 12px; margin-top: 26px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    padding: 12px 26px; border-radius: 999px; font-size: 15px; font-weight: 600;
+    transition: transform .15s var(--ease), opacity .2s var(--ease), background .2s var(--ease);
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: var(--accent); color: #0b0b12; }
+  .btn-primary:hover { opacity: .92; }
+  .btn-ghost { border: 1px solid var(--card-border); color: var(--text); }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.25); }
+
+  /* ============ 设置 ============ */
+  .durations { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
+  .interval-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .interval-row input { max-width: 90px; }
+
+  .presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .preset {
+    padding: 12px; border-radius: 12px; border: 1px solid var(--card-border);
+    text-align: center; font-size: 13px; transition: all .2s var(--ease);
+    background: rgba(255,255,255,0.02);
+  }
+  .preset:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .preset .p-name { font-weight: 600; }
+  .preset .p-desc { color: var(--text-sub); margin-top: 2px; font-size: 11px; }
+
+  /* ============ 音频 ============ */
+  .audio-modes { display: flex; gap: 8px; margin-bottom: 12px; }
+  .audio-mode-btn {
+    padding: 6px 14px; border-radius: 20px; font-size: 13px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-sub);
+    transition: all .2s var(--ease);
+  }
+  .audio-mode-btn:hover { color: var(--text); }
+  .audio-mode-btn.active { background: var(--accent); color: #0b0b12; border-color: transparent; }
+  .play-modes { display: flex; gap: 8px; margin: 10px 0 14px; }
+  .play-mode-btn {
+    padding: 6px 16px; border-radius: 20px; font-size: 13px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-sub);
+    transition: all .2s var(--ease);
+  }
+  .play-mode-btn:hover { color: var(--text); }
+  .play-mode-btn.active { background: #22d3ee; color: #0b0b12; border-color: transparent; }
+  .audio-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .audio-chip {
+    padding: 8px 14px; border-radius: 999px; font-size: 13px;
+    border: 1px solid var(--card-border); color: var(--text-sub);
+    transition: all .2s var(--ease);
+  }
+  .audio-chip.active { color: #fff; background: var(--accent); border-color: transparent; }
+  .audio-chip:hover { border-color: var(--accent); }
+  .audio-row { display: flex; align-items: center; gap: 12px; }
+  .audio-row label { font-size: 13px; color: var(--text-sub); white-space: nowrap; }
+  .audio-row input[type=range] { flex: 1; accent-color: #22d3ee; }
+  .file-btn { display: inline-block; padding: 8px 14px; border-radius: 10px;
+              border: 1px dashed var(--card-border); font-size: 13px; color: var(--text-sub);
+              cursor: pointer; margin-top: 6px; }
+  .file-btn:hover { border-color: var(--accent); color: var(--text); }
+  #fileInput { display: none; }
+
+  /* ============ 待办 ============ */
+  .todo-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .todo-head h2 { margin-bottom: 0; }
+  .todo-toggle {
+    width: 32px; height: 32px; border-radius: 50%; font-size: 22px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: #22d3ee; color: #0b0b12; font-weight: 700;
+    transition: transform .25s var(--ease), background .25s var(--ease);
+  }
+  .todo-toggle:hover { transform: rotate(90deg) scale(1.08); }
+  .todo-toggle.open { transform: rotate(45deg); background: rgba(34,211,238,0.25); color: #22d3ee; }
+  .todo-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 14px;
+               animation: slideDown .3s var(--ease); }
+  .todo-form[hidden] { display: none; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .todo-form input[type=text] { grid-column: 1 / -1; }
+  .todo-form .row { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 60px auto; gap: 8px; align-items: end; }
+  @media (max-width: 520px) {
+    .todo-form .row { grid-template-columns: 1fr 1fr; }
+    .todo-form .row .add-btn { grid-column: 1 / -1; }
+  }
+  .add-btn { background: #22d3ee; color: #0b0b12; border-radius: 10px; padding: 10px 16px; font-weight: 600; }
+
+  .todo-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .todo-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 12px; border: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.02); transition: all .2s var(--ease);
+  }
+  .todo-item:hover { border-color: rgba(255,255,255,0.2); transform: translateX(3px); }
+  .imp-bar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+  .imp-high { background: #ff4d4f; }
+  .imp-medium { background: #faad14; }
+  .imp-low { background: #52c41a; }
+  .todo-main { flex: 1; min-width: 0; }
+  .todo-text { word-break: break-word; font-size: 15px; }
+  .todo-meta { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
+  .todo-item.done .todo-text { text-decoration: line-through; opacity: .5; }
+  .del-btn { color: var(--text-sub); padding: 6px; border-radius: 8px; font-size: 16px; line-height: 1; }
+  .del-btn:hover { color: #ff4d4f; background: rgba(255,77,79,0.1); }
+
+  /* 语言切换 */
+  .lang-switcher {
+    position: fixed; top: 18px; right: 18px; z-index: 100;
+    display: flex; gap: 4px; padding: 4px; border-radius: 999px;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .lang-btn {
+    padding: 6px 14px; border-radius: 999px; font-size: 13px;
+    color: var(--text-sub); transition: all .2s var(--ease); font-weight: 600;
+  }
+  .lang-btn.active { background: #a78bfa; color: #0b0b12; }
+
+  .todo-time-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .todo-time-row select { max-width: 70px; }
+  .todo-time-row input[type=time] { max-width: 110px; }
+  .todo-time-row .time-sep { color: var(--text-sub); font-size: 15px; }
+  .todo-dates-row { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .todo-dates-row > label { font-size: 13px; color: var(--text-sub); }
+  .date-picker { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .date-picker select { max-width: 70px; }
+  .add-date-btn {
+    background: #22d3ee; color: #0b0b12; border: none; border-radius: 8px;
+    padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .date-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .date-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px; font-size: 12px;
+    background: rgba(34,211,238,0.15); color: #67e8f9; border: 1px solid rgba(34,211,238,0.3);
+  }
+  .date-chip button {
+    background: none; border: none; color: #67e8f9; cursor: pointer; font-size: 14px; line-height: 1; padding: 0;
+  }
+  .time-tag, .date-tag {
+    display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px;
+    background: rgba(34,211,238,0.15); color: #67e8f9; margin-right: 6px;
+  }
+  .time-tag { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .todo-item.off-day { opacity: .55; }
+  .todo-item[draggable="true"] { cursor: grab; }
+  .todo-item[draggable="true"]:active { cursor: grabbing; }
+
+  /* 日历 */
+  .calendar { margin-top: 22px; border-top: 1px solid var(--card-border); padding-top: 18px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-title { font-size: 16px; font-weight: 700; }
+  .cal-nav { width: 30px; height: 30px; border-radius: 8px; font-size: 20px; line-height: 1;
+             color: var(--text); background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+             display: flex; align-items: center; justify-content: center; transition: all .2s var(--ease); }
+  .cal-nav:hover { background: var(--accent); color: #0b0b12; }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
+  .cal-weekdays div { text-align: center; font-size: 12px; color: var(--text-sub); padding: 4px 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day {
+    min-height: 70px; padding: 6px; border-radius: 10px; font-size: 13px;
+    background: rgba(255,255,255,0.02); border: 1px solid transparent;
+    display: flex; flex-direction: column; gap: 3px; transition: all .2s var(--ease);
+  }
+  .cal-day.other { opacity: .3; }
+  .cal-day.today { background: rgba(255,255,255,0.07); }
+  .cal-day.today .cal-day-num { color: var(--accent); }
+  .cal-day.drag-over { background: rgba(255,255,255,0.12); transform: scale(1.03); }
+  .cal-day, .cal-nav, .audio-mode-btn, .todo-toggle { outline: none; }
+  .cal-day-num { font-weight: 600; }
+  .cal-chip {
+    font-size: 11px; padding: 2px 6px; border-radius: 6px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; background: rgba(255,255,255,0.1);
+    border-left: 3px solid var(--accent);
+  }
+  .cal-hint { text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 12px; }
+
+  footer { text-align: center; color: var(--text-sub); font-size: 12px; padding: 30px 0 10px; }
+
+  /* 通知 */
+  .toast {
+    position: fixed; left: 50%; top: 24px; transform: translate(-50%, -20px);
+    background: var(--accent); color: #0b0b12; padding: 10px 20px; border-radius: 999px;
+    font-weight: 600; font-size: 14px; opacity: 0; pointer-events: none;
+    transition: all .3s var(--ease); z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="lang-switcher">
+  <button class="lang-btn active" data-lang="zh">中文</button>
+  <button class="lang-btn" data-lang="en">EN</button>
+</div>
+<div class="wrap">
+  <header class="hero">
+    <h1 class="logo">JUST TO DO</h1>
+    <p class="sub" data-i18n="hero_sub">专注当下 · 一件一件来</p>
+  </header>
+
+  <div class="grid">
+    <!-- 番茄钟 -->
+    <section class="card timer-card" data-reveal>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="focus" data-i18n="mode_focus">专注</button>
+        <button class="mode-tab" data-mode="short" data-i18n="mode_short">短休息</button>
+        <button class="mode-tab" data-mode="long" data-i18n="mode_long">长休息</button>
+      </div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 200 200">
+          <circle class="ring-bg" cx="100" cy="100" r="90"></circle>
+          <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="90"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="time-display" id="timeDisplay">25:00</div>
+          <div class="round-info" id="roundInfo">第 1 轮 · 0 次专注</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="startBtn" data-i18n="btn_start">开始</button>
+        <button class="btn btn-ghost" id="resetBtn" data-i18n="btn_reset">重置</button>
+        <button class="btn btn-ghost" id="skipBtn" data-i18n="btn_skip">跳过</button>
+        <button class="btn btn-ghost" id="resetRoundBtn" data-i18n="btn_reset_round">重置轮次</button>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="card" data-reveal>
+      <h2 data-i18n="dur_title">时长设置</h2>
+      <div class="durations">
+        <div class="field">
+          <label data-i18n="dur_focus">专注 (分钟)</label>
+          <input type="number" min="1" max="180" id="focusMin" value="25">
+        </div>
+        <div class="field">
+          <label data-i18n="dur_short">短休息 (分钟)</label>
+          <input type="number" min="1" max="60" id="shortMin" value="5">
+        </div>
+        <div class="field">
+          <label data-i18n="dur_long">长休息 (分钟)</label>
+          <input type="number" min="1" max="60" id="longMin" value="15">
+        </div>
+      </div>
+      <div class="interval-row">
+        <label><span data-i18n="dur_interval_pre">每</span> <input type="number" min="1" max="10" id="longInterval" value="4"> <span data-i18n="dur_interval_post">轮专注后长休息</span></label>
+      </div>
+      <h2 style="margin-top:18px" data-i18n="preset_title">推荐搭配</h2>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <!-- 音频 -->
+    <section class="card span-2" data-reveal>
+      <h2 data-i18n="audio_title">环境音</h2>
+      <div class="audio-modes" id="audioModes">
+        <button type="button" class="audio-mode-btn active" data-audio-mode="focus" data-i18n="mode_focus">专注</button>
+        <button type="button" class="audio-mode-btn" data-audio-mode="short" data-i18n="mode_short">短休息</button>
+        <button type="button" class="audio-mode-btn" data-audio-mode="long" data-i18n="mode_long">长休息</button>
+      </div>
+      <div class="audio-list" id="audioList"></div>
+      <div class="play-modes" id="playModes">
+        <button type="button" class="play-mode-btn" data-play-mode="loop" data-i18n="play_loop">循环</button>
+        <button type="button" class="play-mode-btn" data-play-mode="random" data-i18n="play_random">随机</button>
+        <button type="button" class="play-mode-btn" data-play-mode="sequential" data-i18n="play_sequential">顺序</button>
+      </div>
+      <div class="audio-row">
+        <label data-i18n="audio_volume">音量</label>
+        <input type="range" id="volume" min="0" max="100" value="50">
+        <label class="file-btn" for="fileInput" data-i18n="audio_pick">+ 选择本地音频</label>
+        <input type="file" id="fileInput" accept="audio/*" multiple>
+      </div>
+    </section>
+
+    <!-- 待办 -->
+    <section class="card span-2" data-reveal>
+      <div class="todo-head">
+        <h2 data-i18n="todo_title">待办事项</h2>
+        <button type="button" class="todo-toggle open" id="todoToggle" aria-label="toggle">−</button>
+      </div>
+      <form class="todo-form" id="todoForm">
+        <input type="text" id="todoText" maxlength="200" required
+               placeholder="写下要做的事..." data-i18n-ph="todo_ph_text">
+        <div class="row">
+          <div class="field">
+            <label data-i18n="todo_time">时间</label>
+            <div class="todo-time-row">
+              <input type="time" id="todoStart">
+              <span class="time-sep">~</span>
+              <input type="time" id="todoEnd">
+            </div>
+          </div>
+          <div class="field">
+            <label data-i18n="todo_imp">重要性</label>
+            <select id="todoImp">
+              <option value="high" data-i18n="imp_high">高</option>
+              <option value="medium" selected data-i18n="imp_medium">中</option>
+              <option value="low" data-i18n="imp_low">低</option>
+            </select>
+          </div>
+          <div class="field">
+            <label data-i18n="todo_color">颜色</label>
+            <input type="color" id="todoColor" value="#f5f5f7" style="padding:4px;height:40px;">
+          </div>
+          <button type="submit" class="add-btn" data-i18n="todo_add">添加</button>
+        </div>
+        <div class="todo-dates-row">
+          <label data-i18n="todo_dates">安排日期</label>
+          <div class="date-picker">
+            <select id="dpMonth"></select>
+            <select id="dpDay"></select>
+            <button type="button" class="add-date-btn" id="addDateBtn" data-i18n="todo_add_date">+ 添加</button>
+          </div>
+          <div class="date-chips" id="dateChips"></div>
+          <p class="hint" data-i18n="todo_dates_hint">也可把待办直接拖到下方日历上</p>
+        </div>
+      </form>
+      <ul class="todo-list" id="todoList"></ul>
+
+      <div class="calendar">
+        <div class="cal-head">
+          <button type="button" class="cal-nav" id="calPrev">‹</button>
+          <span class="cal-title" id="calTitle"></span>
+          <button type="button" class="cal-nav" id="calNext">›</button>
+        </div>
+        <div class="cal-weekdays" id="calWeekdays"></div>
+        <div class="cal-grid" id="calGrid"></div>
+        <p class="cal-hint" data-i18n="cal_hint">将待办拖到日期上即可安排</p>
+      </div>
+    </section>
+  </div>
+
+  <footer data-i18n="footer">JUST TO DO · 极简番茄钟 · 数据自动保存在本浏览器</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   国际化（中英双语）
+============================================================ */
+const I18N = {
+  zh: {
+    hero_sub: '专注当下 · 一件一件来',
+    mode_focus: '专注', mode_short: '短休息', mode_long: '长休息',
+    btn_start: '开始', btn_pause: '暂停', btn_resume: '继续', btn_reset: '重置', btn_skip: '跳过', btn_reset_round: '重置轮次',
+    round_info: '第 {round} 轮 · 已完成 {n} 次专注',
+    dur_title: '时长设置',
+    dur_focus: '专注 (分钟)', dur_short: '短休息 (分钟)', dur_long: '长休息 (分钟)',
+    dur_interval_pre: '每', dur_interval_post: '轮专注后长休息',
+    preset_title: '推荐搭配',
+    audio_title: '环境音', audio_volume: '音量', audio_pick: '+ 选择本地音频',
+    play_loop: '循环', play_random: '随机', play_sequential: '顺序',
+    todo_title: '待办事项', todo_ph_text: '写下要做的事...',
+    todo_time: '完成时间', todo_ph_time: '如 14:00 / 明天',
+    todo_imp: '重要性', imp_high: '高', imp_medium: '中', imp_low: '低',
+    todo_color: '颜色', todo_add: '添加',
+    todo_dates: '安排日期', todo_add_date: '+ 添加', todo_dates_hint: '也可把待办直接拖到下方日历上',
+    recur_label: '重复', recur_none: '不重复', recur_daily: '每日',
+    recur_weekly: '每周', recur_monthly: '每月',
+    recur_hint_none: '不重复的一次性任务',
+    recur_hint_daily: '每天都会出现的任务',
+    recur_hint_weekly_multisel: '可多选',
+    recur_hint_monthly_pre: '每月', recur_hint_monthly_post: '号',
+    cal_hint: '将待办拖到日期上即可安排',
+    reminder_title: '待办提醒', reminder_msg: '「{text}」将在 {time} 开始',
+    todo_empty: '暂无待办，添加一个开始吧',
+    todo_no_time: '未设时间',
+    imp_high_text: '高重要', imp_medium_text: '中重要', imp_low_text: '低重要',
+    weekdays: ['一','二','三','四','五','六','日'],
+    toast_focus_done_long: '专注完成！该长休息啦',
+    toast_focus_done_short: '专注完成！短休息一下',
+    toast_break_done: '休息结束，开始新的专注', toast_round_reset: '轮次已重置',
+    toast_applied: '已应用「{name}」',
+    toast_audio_fail: '无法播放：请确认 music/ 文件夹中有对应音频',
+    toast_weekday_required: '请至少选择一个星期几',
+    toast_monthday_required: '请输入 1-31 的日期',
+    footer: 'JUST TO DO · 极简番茄钟 · 数据自动保存在本浏览器',
+  },
+  en: {
+    hero_sub: 'Focus on now · One thing at a time',
+    mode_focus: 'Focus', mode_short: 'Short Break', mode_long: 'Long Break',
+    btn_start: 'Start', btn_pause: 'Pause', btn_resume: 'Resume', btn_reset: 'Reset', btn_skip: 'Skip', btn_reset_round: 'Reset Round',
+    round_info: 'Round {round} · {n} focus done',
+    dur_title: 'Duration',
+    dur_focus: 'Focus (min)', dur_short: 'Short Break (min)', dur_long: 'Long Break (min)',
+    dur_interval_pre: 'Long break after every', dur_interval_post: 'focus rounds',
+    preset_title: 'Presets',
+    audio_title: 'Ambient Sound', audio_volume: 'Volume', audio_pick: '+ Pick local audio',
+    play_loop: 'Loop', play_random: 'Shuffle', play_sequential: 'Sequential',
+    todo_title: 'Todos', todo_ph_text: 'What needs to be done...',
+    todo_time: 'Deadline', todo_ph_time: 'e.g. 14:00 / Tomorrow',
+    todo_imp: 'Priority', imp_high: 'High', imp_medium: 'Medium', imp_low: 'Low',
+    todo_color: 'Color', todo_add: 'Add',
+    todo_dates: 'Dates', todo_add_date: '+ Add', todo_dates_hint: 'Or drag a todo onto the calendar below',
+    recur_label: 'Repeat', recur_none: 'None', recur_daily: 'Daily',
+    recur_weekly: 'Weekly', recur_monthly: 'Monthly',
+    recur_hint_none: 'A one-time task',
+    recur_hint_daily: 'Appears every day',
+    recur_hint_weekly_multisel: 'multi-select',
+    recur_hint_monthly_pre: 'On day', recur_hint_monthly_post: 'of each month',
+    cal_hint: 'Drag a todo onto a date to schedule it',
+    reminder_title: 'Todo Reminder', reminder_msg: '"{text}" starts at {time}',
+    todo_empty: 'No todos yet. Add one to get started.',
+    todo_no_time: 'No time set',
+    imp_high_text: 'High', imp_medium_text: 'Medium', imp_low_text: 'Low',
+    weekdays: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    toast_focus_done_long: 'Focus done! Time for a long break.',
+    toast_focus_done_short: 'Focus done! Take a short break.',
+    toast_break_done: 'Break over. Start a new focus session.', toast_round_reset: 'Round reset',
+    toast_applied: 'Applied "{name}"',
+    toast_audio_fail: 'Cannot play: make sure the audio file exists in the music/ folder.',
+    toast_weekday_required: 'Please select at least one weekday.',
+    toast_monthday_required: 'Please enter a day between 1 and 31.',
+    footer: 'JUST TO DO · Minimal Pomodoro · Data saved locally in this browser',
+  }
+};
+
+let currentLang = localStorage.getItem('jtd_lang') || 'zh';
+function t(key, vars) {
+  let s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.zh[key] || key;
+  if (vars) for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
+  return s;
+}
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('jtd_lang', lang);
+  document.querySelectorAll('.lang-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.lang === lang));
+  applyLang();
+  // 动态内容重渲染
+  renderPresets();
+  renderAudioList();
+  renderTodos();
+  renderCalendar();
+  renderTimer();
+}
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+}
+
+/* ============================================================
+   常量 & 配置
+============================================================ */
+const CIRC = 2 * Math.PI * 90; // 环形周长 ≈ 565.486
+const STORAGE_KEY = 'just_to_do_state_v1';
+
+// 推荐搭配（专注 / 短休息 / 长休息 / 长休期间隔）
+const COMBOS = [
+  { key: 'classic',  nameZh: '经典型',   nameEn: 'Classic',       focus: 25, short: 5,  long: 15, interval: 4, descZh: '25+5+15 · 每4轮',       descEn: '25+5+15 · every 4 rounds' },
+  { key: 'deep',     nameZh: '深度工作型', nameEn: 'Deep Work',     focus: 50, short: 10, long: 30, interval: 3, descZh: '50+10+30 · 每3轮',      descEn: '50+10+30 · every 3 rounds' },
+  { key: 'light',    nameZh: '轻度任务型', nameEn: 'Light Task',    focus: 15, short: 3,  long: 10, interval: 4, descZh: '15+3+10 · 每4轮',       descEn: '15+3+10 · every 4 rounds' },
+  { key: 'sedentary',nameZh: '久坐提醒型', nameEn: 'Sedentary Reminder', focus: 45, short: 5, long: 12, interval: 2, descZh: '45+5+12 · 每2轮', descEn: '45+5+12 · every 2 rounds' },
+];
+
+// 内置环境音（用户上传到 music/ 文件夹即可生效）
+const AUDIO_TRACKS = [
+  // 雨声
+  { id: 'rain-light',  nameZh: '轻柔雨声', nameEn: 'Light Rain',  file: 'music/rain/liecio-light-rain-109591.mp3' },
+  { id: 'rain',        nameZh: '雨声',     nameEn: 'Rain Sound',  file: 'music/rain/boons_freak-rain-sound-188158.mp3' },
+  // 海水
+  { id: 'ocean-waves', nameZh: '海浪',     nameEn: 'Ocean Waves', file: 'music/ocean/rmultimediaeu-ocean-waves-sound-01-321570.mp3' },
+  { id: 'sea-soft',    nameZh: '舒缓海浪', nameEn: 'Soft Sea Waves', file: 'music/ocean/soundsforyou-ocean-sea-soft-waves-121349.mp3' },
+  // 森林
+  { id: 'forest-birds', nameZh: '鸟鸣森林', nameEn: 'Birds in Forest', file: 'music/forest/soundreality-birds-forest-nature-445379.mp3' },
+  { id: 'forest-nature', nameZh: '森林自然', nameEn: 'Forest Nature', file: 'music/forest/soundreality-nature-forest-sound-537925.mp3' },
+  // 篝火
+  { id: 'campfire',    nameZh: '篝火噼啪', nameEn: 'Campfire Crackling', file: 'music/fire/soundreality-fire-crackling-campfire-sound-575667.mp3' },
+  { id: 'fire-crackle', nameZh: '火堆声响', nameEn: 'Fire Crackling', file: 'music/fire/soundreality-fire-crackling-sound-499636.mp3' },
+  // 白噪音
+  { id: 'white-brown', nameZh: '舒缓白噪音', nameEn: 'Soothing Brown Noise', file: 'music/noise/cosmic-scapes-relaxing-smoothed-brown-noise-294838.mp3' },
+  { id: 'white-ambient', nameZh: '氛围白噪音', nameEn: 'Ambient Noise', file: 'music/noise/soul_serenity_sounds-ambient-noise-236388.mp3' },
+  // 粉噪音
+  { id: 'pink-low',    nameZh: '低频粉噪音', nameEn: 'Low Pink Noise', file: 'music/pink/danevaer-low-pink-noise-434732.mp3' },
+];
+const comboName = (c) => currentLang === 'en' ? c.nameEn : c.nameZh;
+const comboDesc = (c) => currentLang === 'en' ? c.descEn : c.descZh;
+const trackName = (t) => currentLang === 'en' ? (t.nameEn || t.name) : (t.nameZh || t.name);
+
+/* ============================================================
+   状态（运行时）
+============================================================ */
+const state = {
+  // 计时
+  mode: 'focus',                  // 'focus' | 'short' | 'long'
+  isRunning: false,
+  endTime: null,                  // 目标结束时间戳（Date.now 体系）
+  remainingMs: 25 * 60 * 1000,    // 暂停/未开始时的剩余时长
+  completedFocus: 0,              // 已完成专注轮数
+
+  // 设置（分钟）
+  focusMin: 25,
+  shortMin: 5,
+  longMin: 15,
+  longInterval: 4,
+
+  // 音频（按模式分别设置，每个模式一个播放列表）
+  tracksByMode: { focus: [], short: [], long: [] },   // 音轨 id 数组
+  playModeByMode: { focus: 'loop', short: 'loop', long: 'loop' }, // loop | sequential | random
+  playIndexByMode: { focus: 0, short: 0, long: 0 },   // 当前播放到列表的第几首
+  audioEditMode: 'focus',         // 当前正在配置哪个模式的音轨
+  volume: 0.5,
+  customTracks: [],               // 临时自定义音轨 {id,name,url}
+
+  // 待办
+  todos: [],
+  _reminded: new Set(),  // 内存去重：已提醒过的 todoId+日期+时间 组合
+
+  // 日历视图
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+};
+
+/* ============================================================
+   持久化：事件驱动写盘（不在每秒 tick 里写）
+============================================================ */
+function saveState() {
+  try {
+    // 只持久化必要字段，避免体积过大
+    const payload = {
+      mode: state.mode,
+      isRunning: state.isRunning,
+      endTime: state.endTime,
+      remainingMs: state.remainingMs,
+      completedFocus: state.completedFocus,
+      focusMin: state.focusMin,
+      shortMin: state.shortMin,
+      longMin: state.longMin,
+      longInterval: state.longInterval,
+    tracksByMode: state.tracksByMode,
+    playModeByMode: state.playModeByMode,
+    volume: state.volume,
+      todos: state.todos,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) { /* 忽略存储错误 */ }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    Object.assign(state, s);
+
+    // 防御：旧数据可能缺少字段或类型不对，补默认值，避免轮次/时长显示异常
+    if (typeof state.completedFocus !== 'number' || isNaN(state.completedFocus)) state.completedFocus = 0;
+    if (typeof state.longInterval !== 'number' || !state.longInterval) state.longInterval = 4;
+    ['focusMin','shortMin','longMin'].forEach(k => {
+      if (typeof state[k] !== 'number' || !state[k]) state[k] = k==='focusMin'?25:k==='shortMin'?5:15;
+    });
+    ['tracksByMode', 'playModeByMode'].forEach(k => {
+      if (!state[k] || typeof state[k] !== 'object') state[k] = { focus: null, short: null, long: null };
+      ['focus','short','long'].forEach(m => {
+        if (k === 'tracksByMode' && !Array.isArray(state[k][m])) state[k][m] = [];
+        if (k === 'playModeByMode' && !['loop','sequential','random'].includes(state[k][m])) state[k][m] = 'loop';
+      });
+    });
+    if (!state.playIndexByMode || typeof state.playIndexByMode !== 'object') {
+      state.playIndexByMode = { focus: 0, short: 0, long: 0 };
+    }
+    // 兼容旧数据：旧版单个 trackByMode → 转成列表
+    if (s.trackByMode) {
+      ['focus','short','long'].forEach(m => {
+        if (s.trackByMode[m] && state.tracksByMode[m].length === 0) state.tracksByMode[m] = [s.trackByMode[m]];
+      });
+    }
+    if (s.currentTrackId && state.tracksByMode.focus.length === 0) state.tracksByMode.focus = [s.currentTrackId];
+    if (!Array.isArray(state.todos)) state.todos = [];
+    // 兼容旧数据：旧版用单个 date 字段，迁移到 dates 数组
+    state.todos.forEach(t => {
+      if (!Array.isArray(t.dates)) {
+        t.dates = t.date ? [t.date] : [];
+        delete t.date;
+      }
+    });
+
+    // 若刷新时正在计时，校准剩余时间
+    if (state.isRunning && state.endTime) {
+      const rem = state.endTime - Date.now();
+      if (rem <= 0) {
+        // 计时已在后台结束
+        state.isRunning = false;
+        state.remainingMs = 0;
+        // 触发完成（延后到主循环）
+        setTimeout(() => completeSession(true), 0);
+      } else {
+        state.remainingMs = rem;
+      }
+    }
+  } catch (e) { /* 忽略解析错误 */ }
+}
+
+/* ============================================================
+   工具函数
+============================================================ */
+const $ = (s) => document.querySelector(s);
+const fmt = (ms) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+};
+const modeDuration = () => {
+  const m = state.mode === 'focus' ? state.focusMin
+          : state.mode === 'short' ? state.shortMin
+          : state.longMin;
+  return m * 60 * 1000;
+};
+const modeColor = () => state.mode === 'focus' ? 'var(--focus)'
+                      : state.mode === 'short' ? 'var(--short)' : 'var(--long)';
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+/* ============================================================
+   渲染
+============================================================ */
+function applyModeColor() {
+  document.documentElement.style.setProperty('--accent', modeColor());
+}
+
+function renderModeTabs() {
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.mode === state.mode);
+  });
+}
+
+function renderTimer() {
+  const total = modeDuration();
+  const rem = state.isRunning ? (state.endTime - Date.now()) : state.remainingMs;
+  const clamped = Math.max(0, rem);
+  $('#timeDisplay').textContent = fmt(clamped);
+
+  const progress = total > 0 ? clamped / total : 0;
+  $('#ringFg').style.strokeDashoffset = CIRC * (1 - progress);
+
+  // 当前轮次：专注中=已完成数+1；休息中=刚完成的轮次；手动切到休息且未完成过时至少为 1
+  const round = Math.max(1, state.completedFocus + (state.mode === 'focus' ? 1 : 0));
+  $('#roundInfo').textContent = t('round_info', { round, n: state.completedFocus });
+}
+
+function renderSettings() {
+  $('#focusMin').value = state.focusMin;
+  $('#shortMin').value = state.shortMin;
+  $('#longMin').value = state.longMin;
+  $('#longInterval').value = state.longInterval;
+}
+
+function renderPresets() {
+  const box = $('#presets');
+  box.innerHTML = COMBOS.map(c => `
+    <button class="preset" data-combo="${c.key}">
+      <div class="p-name">${comboName(c)}</div>
+      <div class="p-desc">${comboDesc(c)}</div>
+    </button>
+  `).join('');
+}
+
+function renderAudioList() {
+  const box = $('#audioList');
+  const tracks = [...AUDIO_TRACKS, ...state.customTracks];
+  const activeIds = state.tracksByMode[state.audioEditMode] || [];
+  box.innerHTML = tracks.map(t => `
+    <button class="audio-chip ${activeIds.includes(t.id) ? 'active' : ''}"
+            data-track="${t.id}">${trackName(t)}</button>
+  `).join('');
+  $('#volume').value = Math.round(state.volume * 100);
+
+  // 同步模式按钮高亮
+  document.querySelectorAll('.audio-mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.audioMode === state.audioEditMode);
+  });
+  // 同步播放模式按钮高亮
+  const pm = state.playModeByMode[state.audioEditMode];
+  document.querySelectorAll('.play-mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.playMode === pm);
+  });
+}
+
+function renderTodos() {
+  const list = $('#todoList');
+  if (state.todos.length === 0) {
+    list.innerHTML = `<li style="text-align:center;color:var(--text-sub);padding:20px;font-size:14px">${t('todo_empty')}</li>`;
+    return;
+  }
+  const today = todayStr();
+  list.innerHTML = state.todos.map(todo => {
+    const color = todo.color || '#f5f5f7';
+    const done = !!todo.done;
+    const datesList = (todo.dates || []).slice().sort();
+    const datesLabel = datesList.length ? `<span class="date-tag">📅 ${datesList.join(', ')}</span>` : '';
+    const timeLabel = todo.time ? `<span class="time-tag">⏰ ${formatTodoTime(todo.time)}</span>` : '';
+    return `
+      <li class="todo-item ${done ? 'done' : ''}" data-id="${todo.id}" draggable="true">
+        <span class="imp-bar imp-${todo.importance}"></span>
+        <input type="checkbox" ${done ? 'checked' : ''} data-act="toggle" style="width:auto;accent-color:var(--accent)">
+        <div class="todo-main">
+          <div class="todo-text" style="color:${color}">${escapeHtml(todo.text)}</div>
+          <div class="todo-meta">${timeLabel}${datesLabel} · ${impText(todo.importance)}</div>
+        </div>
+        <button class="del-btn" data-act="del" aria-label="删除">✕</button>
+      </li>`;
+  }).join('');
+}
+const impText = (i) => i === 'high' ? t('imp_high_text') : i === 'low' ? t('imp_low_text') : t('imp_medium_text');
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 表单中临时选择的日期
+let formDates = [];
+function initDatePicker() {
+  const m = $('#dpMonth'), d = $('#dpDay');
+  if (!m || !d) return;
+  for (let i = 1; i <= 12; i++) m.insertAdjacentHTML('beforeend', `<option value="${String(i).padStart(2,'0')}">${i}</option>`);
+  for (let i = 1; i <= 31; i++) d.insertAdjacentHTML('beforeend', `<option value="${String(i).padStart(2,'0')}">${i}</option>`);
+  const now = new Date();
+  m.value = String(now.getMonth()+1).padStart(2,'0');
+  d.value = String(now.getDate()).padStart(2,'0');
+}
+function renderDateChips() {
+  const box = $('#dateChips');
+  if (!box) return;
+  box.innerHTML = formDates.slice().sort().map(dt =>
+    `<span class="date-chip">${dt}<button type="button" data-rm-date="${dt}" aria-label="remove">✕</button></span>`
+  ).join('');
+}
+function addFormDate() {
+  const m = $('#dpMonth').value, d = $('#dpDay').value;
+  if (!m || !d) return;
+  const dt = `${m}-${d}`;
+  if (!formDates.includes(dt)) {
+    formDates.push(dt);
+    renderDateChips();
+  }
+}
+// 时间值格式："13:45~14:45"，直接显示
+function formatTodoTime(v) {
+  if (!v) return t('todo_no_time');
+  return v;
+}
+// 返回 todo 关联的所有日期 MM-DD 数组
+function todoDates(t) {
+  return t.dates || [];
+}
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function renderAll() {
+  applyModeColor();
+  renderModeTabs();
+  renderTimer();
+}
+
+/* ============================================================
+   计时核心：目标时间戳 + visibilitychange 修正
+============================================================ */
+let tickTimer = null;
+
+function startTick() {
+  if (tickTimer) return;
+  tickTimer = setInterval(tick, 200);
+}
+function stopTick() {
+  clearInterval(tickTimer);
+  tickTimer = null;
+}
+
+function tick() {
+  if (!state.isRunning) { renderTimer(); return; }
+  const rem = state.endTime - Date.now();
+  if (rem <= 0) {
+    completeSession(false);
+    return;
+  }
+  renderTimer();
+}
+
+function start() {
+  if (state.isRunning) return;
+  if (state.remainingMs <= 0) state.remainingMs = modeDuration();
+  state.endTime = Date.now() + state.remainingMs;
+  state.isRunning = true;
+  $('#startBtn').textContent = t('btn_pause');
+  startTick();
+  saveState();
+  // 播放当前模式对应的环境音列表
+  playModePlaylist(state.mode);
+}
+
+function pause() {
+  if (!state.isRunning) return;
+  state.remainingMs = state.endTime - Date.now();
+  state.isRunning = false;
+  state.endTime = null;
+  $('#startBtn').textContent = t('btn_resume');
+  stopTick();
+  saveState();
+  pauseAudio();
+}
+
+function reset() {
+  state.isRunning = false;
+  state.endTime = null;
+  state.remainingMs = modeDuration();
+  $('#startBtn').textContent = t('btn_start');
+  stopTick();
+  renderTimer();
+  saveState();
+  pauseAudio();
+}
+
+function completeSession(fromReload) {
+  state.isRunning = false;
+  state.endTime = null;
+  state.remainingMs = 0;
+  stopTick();
+  pauseAudio();
+
+  // 提示音（用 Web Audio 生成，不依赖音频文件）
+  beep();
+
+  if (state.mode === 'focus') {
+    state.completedFocus += 1;
+    // 判断是否长休息
+    const shouldLong = state.completedFocus % state.longInterval === 0;
+    state.mode = shouldLong ? 'long' : 'short';
+    toast(shouldLong ? t('toast_focus_done_long') : t('toast_focus_done_short'));
+  } else {
+    state.mode = 'focus';
+    toast(t('toast_break_done'));
+  }
+
+  state.remainingMs = modeDuration();
+  $('#startBtn').textContent = t('btn_start');
+  applyModeColor();
+  renderModeTabs();
+  renderTimer();
+  saveState();
+
+  // 自动开始下一阶段（短延迟让提示音和提示被感知）
+  setTimeout(() => { start(); }, 800);
+}
+
+function skip() {
+  // 直接跳到下一阶段，不计入完成
+  if (state.mode === 'focus') {
+    state.mode = (state.completedFocus + 1) % state.longInterval === 0 ? 'long' : 'short';
+  } else {
+    state.mode = 'focus';
+  }
+  state.isRunning = false;
+  state.endTime = null;
+  state.remainingMs = modeDuration();
+  $('#startBtn').textContent = t('btn_start');
+  applyModeColor();
+  renderModeTabs();
+  renderTimer();
+  saveState();
+}
+
+function resetRound() {
+  // 重置已完成专注次数（轮次清零），不影响当前计时
+  state.completedFocus = 0;
+  renderTimer();
+  saveState();
+  toast(t('toast_round_reset'));
+}
+
+// 标签页可见性变化：重新基于 endTime 计算，避免休眠累积误差
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    if (state.isRunning) {
+      const rem = state.endTime - Date.now();
+      if (rem <= 0) {
+        completeSession(false);
+      } else {
+        renderTimer();
+        startTick(); // 确保 tick 在运行
+      }
+    } else {
+      renderTimer();
+    }
+  }
+});
+
+/* ============================================================
+   提示音（Web Audio 合成，无需文件）
+============================================================ */
+let audioCtx = null;
+function beep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+    [880, 1108, 1318].forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, now + i * 0.18);
+      g.gain.exponentialRampToValueAtTime(0.25, now + i * 0.18 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.18 + 0.16);
+      o.connect(g).connect(ctx.destination);
+      o.start(now + i * 0.18);
+      o.stop(now + i * 0.18 + 0.18);
+    });
+  } catch (e) {}
+}
+
+/* ============================================================
+   音频播放（环境音）
+============================================================ */
+let audioEl = null;
+function getAudioEl() {
+  if (!audioEl) {
+    audioEl = new Audio();
+    audioEl.volume = state.volume;
+    // 一首播完时，根据当前模式的播放模式决定下一首
+    audioEl.addEventListener('ended', () => {
+      const mode = state.mode;
+      const pm = state.playModeByMode[mode] || 'loop';
+      if (pm === 'loop') return; // loop=true 已自动重播
+      const list = state.tracksByMode[mode] || [];
+      if (list.length === 0) return;
+      if (pm === 'sequential') {
+        state.playIndexByMode[mode] = (state.playIndexByMode[mode] + 1) % list.length;
+      } else if (pm === 'random') {
+        let n;
+        do { n = Math.floor(Math.random() * list.length); }
+        while (list.length > 1 && n === state.playIndexByMode[mode]);
+        state.playIndexByMode[mode] = n;
+      }
+      saveState();
+      playModePlaylist(mode);
+    });
+  }
+  return audioEl;
+}
+
+function resolveTrack(id) {
+  return AUDIO_TRACKS.find(t => t.id === id)
+      || state.customTracks.find(t => t.id === id);
+}
+
+function pauseAudio() {
+  if (audioEl) audioEl.pause();
+}
+
+function toggleTrack(id) {
+  // 多选：加入/移除当前模式的播放列表
+  const mode = state.audioEditMode;
+  const list = state.tracksByMode[mode];
+  const idx = list.indexOf(id);
+  if (idx >= 0) list.splice(idx, 1);
+  else list.push(id);
+  state.playIndexByMode[mode] = 0;
+  saveState();
+  renderAudioList();
+  // 若倒计时正在运行且与当前编辑模式一致，立即重新加载该模式的播放列表
+  if (state.isRunning && state.mode === mode) {
+    if (list.length) playModePlaylist(mode);
+    else pauseAudio();
+  }
+}
+
+// 按模式播放播放列表（根据 playModeByMode 决定单曲/顺序/随机）
+function playModePlaylist(mode) {
+  const list = state.tracksByMode[mode] || [];
+  if (list.length === 0) { pauseAudio(); return; }
+  const pm = state.playModeByMode[mode] || 'loop';
+  const el = getAudioEl();
+  el.loop = (pm === 'loop');
+  const idx = state.playIndexByMode[mode] % list.length;
+  const id = list[idx];
+  const track = resolveTrack(id);
+  if (!track) { pauseAudio(); return; }
+  if (el.dataset.trackId !== id) {
+    el.src = track.file || track.url;
+    el.dataset.trackId = id;
+  }
+  el.volume = state.volume;
+  const p = el.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+/* ============================================================
+   待办事项
+============================================================ */
+function addTodo(text, time, importance, color, dates) {
+  state.todos.unshift({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    text, time, importance, color, done: false, dates: dates || [],
+  });
+  saveState();
+  renderTodos();
+  renderCalendar();
+}
+function delTodo(id) {
+  state.todos = state.todos.filter(t => t.id !== id);
+  saveState();
+  renderTodos();
+  renderCalendar();
+}
+function toggleTodo(id) {
+  const t = state.todos.find(x => x.id === id);
+  if (t) { t.done = !t.done; saveState(); renderTodos(); renderCalendar(); }
+}
+
+/* ============================================================
+   待办开始前 10 分钟提醒
+============================================================ */
+// 从 todo.time 中解析出 {date: 'MM-DD', start: 'HH:mm'} 或 null
+function parseTodoSchedule(t) {
+  if (!t.time) return null;
+  // time 格式："13:45~14:45"，取开始时间
+  const m = /(\d{2}:\d{2})/.exec(t.time);
+  if (!m) return null;
+  return { start: m[1] };
+}
+
+function checkReminders() {
+  const now = new Date();
+  const todayStr2 = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  for (const t of state.todos) {
+    if (t.done) continue;
+    const s = parseTodoSchedule(t);
+    if (!s) continue;
+    // 若任务关联了日期，仅在今天匹配时提醒；无日期则视为今天
+    const dates = t.dates || [];
+    if (dates.length && !dates.includes(todayStr2)) continue;
+    const [h, m] = s.start.split(':').map(Number);
+    const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    const diffMs = target - now;
+    // 在开始前 10 分钟内触发提醒
+    if (diffMs <= 10 * 60 * 1000 && diffMs > 0) {
+      const key = `${t.id}_${todayStr2}_${s.start}`;
+      if (state._reminded.has(key)) continue;
+      state._reminded.add(key);
+      fireReminder(t, s.start);
+    }
+  }
+}
+
+function fireReminder(todo, startTime) {
+  const msg = t('reminder_msg').replace('{text}', todo.text).replace('{time}', startTime);
+  // 桌面通知
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification(t('reminder_title'), { body: msg });
+  }
+  // 页面内提示 + 提示音
+  toast(msg);
+  beep();
+}
+
+// 请求通知权限（在用户首次交互时调用）
+function askNotificationPermission() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+/* ============================================================
+   日历
+============================================================ */
+function renderCalendar() {
+  const year = state.calYear, month = state.calMonth;
+  $('#calTitle').textContent = `${year} - ${String(month + 1).padStart(2, '0')}`;
+  const wdNames = I18N[currentLang].weekdays;
+  $('#calWeekdays').innerHTML = wdNames.map(n => `<div>${n}</div>`).join('');
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun..6=Sat
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevDays = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const todayStr2 = `${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  // 从周一开始排列（ourDay 1=Mon..7=Sun）
+  const startOffset = (firstDay + 6) % 7;
+  const cells = [];
+  // 上月尾
+  for (let i = startOffset - 1; i >= 0; i--) {
+    cells.push({ day: prevDays - i, other: true, date: null });
+  }
+  // 本月
+  for (let d = 1; d <= daysInMonth; d++) {
+    const mm = String(month + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    cells.push({ day: d, other: false, date: `${mm}-${dd}` });
+  }
+  // 下月头补齐到 42 格（6 行）
+  let nextD = 1;
+  while (cells.length < 42) {
+    cells.push({ day: nextD++, other: true, date: null });
+  }
+
+  $('#calGrid').innerHTML = cells.map(c => {
+    if (c.other) return `<div class="cal-day other"><span class="cal-day-num">${c.day}</span></div>`;
+    const dayTodos = state.todos.filter(t => (t.dates || []).includes(c.date));
+    const isToday = c.date === todayStr2;
+    const chips = dayTodos.slice(0, 3).map(t =>
+      `<div class="cal-chip" style="color:${t.color || '#fff'};border-left-color:${t.color || 'var(--accent)'}">${escapeHtml(t.text)}</div>`
+    ).join('');
+    const more = dayTodos.length > 3 ? `<div class="cal-chip" style="opacity:.6">+${dayTodos.length - 3}</div>` : '';
+    return `<div class="cal-day ${isToday ? 'today' : ''}" data-date="${c.date}">
+      <span class="cal-day-num">${c.day}</span>${chips}${more}
+    </div>`;
+  }).join('');
+}
+
+function calPrev() {
+  state.calMonth--;
+  if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
+  renderCalendar();
+}
+function calNext() {
+  state.calMonth++;
+  if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+  renderCalendar();
+}
+
+// 拖拽：待办 → 日历日期
+let draggedTodoId = null;
+function bindDragDrop() {
+  document.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.todo-item');
+    if (item) {
+      draggedTodoId = item.dataset.id;
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  });
+  document.addEventListener('dragover', (e) => {
+    if (e.target.closest('.cal-day')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+  });
+  document.addEventListener('dragenter', (e) => {
+    const day = e.target.closest('.cal-day');
+    if (day) day.classList.add('drag-over');
+  });
+  document.addEventListener('dragleave', (e) => {
+    const day = e.target.closest('.cal-day');
+    if (day && !day.contains(e.relatedTarget)) day.classList.remove('drag-over');
+  });
+  document.addEventListener('drop', (e) => {
+    const day = e.target.closest('.cal-day');
+    if (!day || !draggedTodoId) return;
+    e.preventDefault();
+    day.classList.remove('drag-over');
+    const date = day.dataset.date;
+    if (!date) return;
+    const todo = state.todos.find(t => t.id === draggedTodoId);
+    if (todo) {
+      // 批量管理：拖到某日期上 = 切换该日期（已存在则移除，否则添加）
+      todo.dates = todo.dates || [];
+      const idx = todo.dates.indexOf(date);
+      if (idx >= 0) todo.dates.splice(idx, 1);
+      else todo.dates.push(date);
+      saveState();
+      renderTodos();
+      renderCalendar();
+    }
+    draggedTodoId = null;
+  });
+}
+
+/* ============================================================
+   事件绑定
+============================================================ */
+function bindEvents() {
+  // 模式切换
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      state.mode = t.dataset.mode;
+      state.isRunning = false;
+      state.endTime = null;
+      state.remainingMs = modeDuration();
+      $('#startBtn').textContent = t('btn_start');
+      applyModeColor();
+      renderModeTabs();
+      renderTimer();
+      saveState();
+    });
+  });
+
+  // 控制按钮
+  $('#startBtn').addEventListener('click', () => state.isRunning ? pause() : start());
+  $('#resetBtn').addEventListener('click', reset);
+  $('#skipBtn').addEventListener('click', skip);
+  $('#resetRoundBtn').addEventListener('click', resetRound);
+
+  // 时长设置
+  ['focusMin', 'shortMin', 'longMin', 'longInterval'].forEach(id => {
+    $('#' + id).addEventListener('change', (e) => {
+      const v = Math.max(1, parseInt(e.target.value) || 1);
+      e.target.value = v;
+      if (id === 'longInterval') state.longInterval = v;
+      else state[id] = v;
+      // 若当前未运行，刷新显示时长
+      if (!state.isRunning) {
+        state.remainingMs = modeDuration();
+        renderTimer();
+      }
+      saveState();
+    });
+  });
+
+  // 推荐搭配
+  $('#presets').addEventListener('click', (e) => {
+    const btn = e.target.closest('.preset');
+    if (!btn) return;
+    const combo = COMBOS.find(c => c.key === btn.dataset.combo);
+    if (!combo) return;
+    state.focusMin = combo.focus;
+    state.shortMin = combo.short;
+    state.longMin = combo.long;
+    state.longInterval = combo.interval;
+    renderSettings();
+    if (!state.isRunning) {
+      state.remainingMs = modeDuration();
+      renderTimer();
+    }
+    saveState();
+    toast(`已应用「${combo.name}」`);
+  });
+
+  // 环境音
+  $('#audioList').addEventListener('click', (e) => {
+    const chip = e.target.closest('.audio-chip');
+    if (!chip) return;
+    toggleTrack(chip.dataset.track);
+  });
+  // 音频模式切换：选择为哪个模式配置音轨
+  document.querySelectorAll('.audio-mode-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      state.audioEditMode = b.dataset.audioMode;
+      renderAudioList();
+    });
+  });
+  // 播放模式切换（循环/随机/顺序），按当前 audioEditMode 设置
+  document.querySelectorAll('.play-mode-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const mode = state.audioEditMode;
+      state.playModeByMode[mode] = b.dataset.playMode;
+      state.playIndexByMode[mode] = 0;
+      saveState();
+      renderAudioList();
+      // 若当前正在运行该模式，立即应用新的播放模式
+      if (state.isRunning && state.mode === mode) {
+        const el = getAudioEl();
+        el.loop = (b.dataset.playMode === 'loop');
+      }
+    });
+  });
+  $('#volume').addEventListener('input', (e) => {
+    state.volume = e.target.value / 100;
+    if (audioEl) audioEl.volume = state.volume;
+    saveState();
+  });
+  $('#fileInput').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(f => {
+      const url = URL.createObjectURL(f);
+      const id = 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5);
+      state.customTracks.push({ id, name: f.name.replace(/\.[^.]+$/, ''), url });
+    });
+    renderAudioList();
+  });
+
+  // 待办
+  $('#todoToggle').addEventListener('click', () => {
+    const form = $('#todoForm');
+    const btn = $('#todoToggle');
+    form.hidden = !form.hidden;
+    btn.classList.toggle('open', !form.hidden);
+    btn.textContent = form.hidden ? '+' : '−';
+  });
+  // 多日期选择
+  $('#addDateBtn').addEventListener('click', addFormDate);
+  $('#dateChips').addEventListener('click', (e) => {
+    const rm = e.target.closest('[data-rm-date]');
+    if (!rm) return;
+    const dt = rm.dataset.rmDate;
+    formDates = formDates.filter(x => x !== dt);
+    renderDateChips();
+  });
+  $('#todoForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = $('#todoText').value.trim();
+    if (!text) return;
+    const start = $('#todoStart').value;
+    const end = $('#todoEnd').value;
+    const range = (start && end) ? `${start}~${end}` : (start || '');
+    const importance = $('#todoImp').value;
+    const color = $('#todoColor').value;
+    const dates = [...formDates];
+    addTodo(text, range, importance, color, dates);
+    $('#todoText').value = '';
+    $('#todoStart').value = '';
+    $('#todoEnd').value = '';
+    formDates = [];
+    renderDateChips();
+  });
+  $('#todoList').addEventListener('click', (e) => {
+    const item = e.target.closest('.todo-item');
+    if (!item) return;
+    const id = item.dataset.id;
+    const act = e.target.dataset.act;
+    if (act === 'del') delTodo(id);
+    else if (act === 'toggle') toggleTodo(id);
+  });
+  $('#todoList').addEventListener('change', (e) => {
+    if (e.target.dataset.act === 'toggle') {
+      toggleTodo(e.target.closest('.todo-item').dataset.id);
+    }
+  });
+
+  // 语言切换
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.addEventListener('click', () => setLang(b.dataset.lang));
+  });
+
+  // 日历导航
+  $('#calPrev').addEventListener('click', calPrev);
+  $('#calNext').addEventListener('click', calNext);
+
+  // 拖拽
+  bindDragDrop();
+}
+
+/* ============================================================
+   滚动渐显动画（IntersectionObserver）
+============================================================ */
+function initReveal() {
+  const els = document.querySelectorAll('[data-reveal]');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(el => el.classList.add('in'));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        en.target.classList.add('in');
+        io.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+  els.forEach(el => io.observe(el));
+}
+
+/* ============================================================
+   启动
+============================================================ */
+function init() {
+  loadState();
+  applyLang();
+  initDatePicker();
+  document.querySelectorAll('.lang-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.lang === currentLang));
+  renderSettings();
+  renderPresets();
+  renderAudioList();
+  renderTodos();
+  renderCalendar();
+  renderAll();
+  bindEvents();
+  initReveal();
+
+  // 待办提醒：每 30 秒检查一次
+  checkReminders();
+  setInterval(checkReminders, 30 * 1000);
+  // 首次用户交互时请求桌面通知权限
+  document.addEventListener('click', askNotificationPermission, { once: true });
+
+  // 若恢复运行，启动 tick
+  if (state.isRunning) {
+    $('#startBtn').textContent = t('btn_pause');
+    startTick();
+    playModePlaylist(state.mode);
+  }
+}
+init();
+</script>
+</body>
+</html>
